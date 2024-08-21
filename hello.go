@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -23,6 +24,7 @@ func main() {
 			iniciarMonitoramento()
 		case 2:
 			fmt.Println("Exibindo logs...")
+			lerLogs()
 		case 0:
 			fmt.Println("Saindo do programa.")
 			os.Exit(0)
@@ -65,7 +67,7 @@ func iniciarMonitoramento() {
 
 	site := "https://" + siteLido
 
-	fmt.Print("Monitorando, pressione \"x\" para encerrar...\n")
+	fmt.Print("Monitorando ", siteLido, "...\n")
 	for {
 		resp, err := http.Get(site)
 		if err != nil {
@@ -75,19 +77,35 @@ func iniciarMonitoramento() {
 
 		if resp.StatusCode == 200 {
 			fmt.Printf("\rSite: %s foi carregado com sucesso!", siteLido)
+			escreveLog(siteLido, true)
 		} else {
 			fmt.Printf("\rSite: %s está com problemas. Status Code: %d", siteLido, resp.StatusCode)
+			escreveLog(siteLido, false)
 		}
 
 		time.Sleep(delay * time.Second)
-
-		var parar string
-		fmt.Scan(&parar)
-
-		if parar == "x" {
-			fmt.Println("\rMonitoramento encerrado.")
-
-			break
-		}
 	}
+}
+
+func escreveLog(siteLido string, status bool) {
+	arquivo, err := os.OpenFile("monitoramento.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	arquivo.WriteString(time.Now().Format("02/01/2006 15:04:05") + " - " + siteLido + " - online: " + strconv.FormatBool(status) + "\n")
+
+	arquivo.Close()
+}
+
+func lerLogs() {
+
+	arquivo, err := os.ReadFile("monitoramento.log")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(string(arquivo))
 }
